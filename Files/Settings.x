@@ -416,35 +416,19 @@ static NSString *GetCacheSize() { // YTLite - @dayanch96
         NSDictionary *tabBundleIconMap = @{@"history": @"icons/history", @"gaming": @"icons/gaming", @"sports": @"icons/sports", @"notifications": @"icons/noti", @"news": @"icons/news", @"music": @"icons/music", @"watchlater": @"icons/watchlater", @"playlist": @"icons/playlist", @"like": @"icons/like", @"live": @"icons/live", @"post": @"icons/post", @"video": @"icons/video", @"movie": @"icons/movie", @"course": @"icons/course", @"minigame": @"icons/minigame", @"fashion": @"icons/fashion", @"learning": @"icons/learning"};
         YTAssetLoader *assetLoader = [[%c(YTAssetLoader) alloc] initWithBundle:YouModBundle()];
 
+        // Fixed 4-option list [Home, Shorts, Subscriptions, You] — MUST stay in sync with
+        // ymCanonicalStartupPivots in Tabbar.x. A dynamic list (built from the user's saved
+        // tab order) let the stored segment index drift onto a different tab whenever
+        // YouTube's server-driven tab bar changed shape.
         NSMutableArray<UIImage *> *defaultTabImages = [NSMutableArray array];
-        NSArray *savedOrder = [[NSUserDefaults standardUserDefaults] arrayForKey:TabOrder];
-        if (savedOrder.count > 0) {
-            for (NSDictionary *entry in savedOrder) {
-                if (![entry[@"enabled"] boolValue]) continue;
-                NSString *tabID = entry[@"id"];
-                if ([tabID isEqualToString:@"create"]) continue;
-                NSNumber *ytIconType = tabYTIconMap[tabID];
-                if (ytIconType) {
-                    UIImage *img = YouModYTIconImage([ytIconType intValue], YES, [UIColor whiteColor]);
-                    if (img) [defaultTabImages addObject:img];
-                } else {
-                    NSString *bundleName = tabBundleIconMap[tabID];
-                    if (bundleName) {
-                        UIImage *img = [assetLoader imageNamed:bundleName];
-                        if (img) {
-                            UIImage *whiteImg = [img imageWithTintColor:[UIColor whiteColor] renderingMode:UIImageRenderingModeAlwaysOriginal];
-                            [defaultTabImages addObject:whiteImg];
-                        }
-                    }
-                }
-            }
+        NSArray *fixedTabIconTypes = @[@(65), @(769), @(66), @(61)];
+        for (NSNumber *iconType in fixedTabIconTypes) {
+            UIImage *img = YouModYTIconImage([iconType intValue], YES, [UIColor whiteColor]);
+            if (img) [defaultTabImages addObject:img];
         }
         if (defaultTabImages.count == 0) {
-            NSArray *fallbackIcons = @[@(65), @(769), @(66), @(61)];
-            for (NSNumber *iconType in fallbackIcons) {
-                UIImage *img = YouModYTIconImage([iconType intValue], YES, [UIColor whiteColor]);
-                if (img) [defaultTabImages addObject:img];
-            }
+            // Icon lookup failed entirely — pad with placeholder titles so indices stay stable.
+            [defaultTabImages addObjectsFromArray:@[[UIImage new], [UIImage new], [UIImage new], [UIImage new]]];
         }
 
         YMPushSubSettings(YMLOC(@"TABBAR"), @[

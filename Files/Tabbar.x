@@ -285,27 +285,31 @@ static BOOL isTabSelected = NO;
         return;
     }
     if (!isTabSelected) {
-        // Build pivot identifiers from enabled tabs (skip Create — matches Settings.x segment logic)
-        NSMutableArray *pivotIdentifiers = [NSMutableArray array];
-        NSArray *savedOrder = [[NSUserDefaults standardUserDefaults] arrayForKey:TabOrder];
-        if (savedOrder.count > 0) {
-            for (NSDictionary *entry in savedOrder) {
-                if (![entry[@"enabled"] boolValue]) continue;
-                NSString *tabID = entry[@"id"];
-                if ([tabID isEqualToString:@"create"]) continue;
-                NSString *pivot = ymPivotIDForTabID(tabID);
-                if (pivot) [pivotIdentifiers addObject:pivot];
-            }
-        }
-        if (pivotIdentifiers.count == 0) {
-            pivotIdentifiers = [@[@"FEwhat_to_watch", @"FEshorts", @"FEsubscriptions", @"FElibrary"] mutableCopy];
-        }
+        // Canonical startup-tab list — FIXED order and FIXED membership, matching the
+        // fixed icon list built in Settings.x for the DefaultTab segment. The previous
+        // implementation built this list from the user's saved tab order (skipping
+        // Create): when YouTube's server-driven pivot bar re-ordered tabs (e.g. Subscriptions
+        // moving behind the You tab), the stored segment index silently resolved to a
+        // different tab (Subscriptions setting landing on FElibrary / "My Channel").
+        static NSArray *ymCanonicalStartupPivots = nil;
+        static dispatch_once_t ymStartupPivotsToken;
+        dispatch_once(&ymStartupPivotsToken, ^{
+            ymCanonicalStartupPivots = @[@"FEwhat_to_watch", @"FEshorts", @"FEsubscriptions", @"FElibrary"];
+        });
 
         NSInteger tabIndex = INTFORVAL(DefaultTab);
         if (tabIndex < 0) tabIndex = 0;
-        if (tabIndex >= (NSInteger)pivotIdentifiers.count) tabIndex = MAX(0, (NSInteger)pivotIdentifiers.count - 1);
-        [self selectItemWithPivotIdentifier:pivotIdentifiers[tabIndex]];
-        isTabSelected = YES;
+        if (tabIndex >= (NSInteger)ymCanonicalStartupPivots.count) tabIndex = (NSInteger)ymCanonicalStartupPivots.count - 1;
+        NSString *targetPivot = ymCanonicalStartupPivots[tabIndex];
+
+        // Only select when the pivot actually exists in the current bar — selecting a
+        // missing identifier silently no-ops, and retrying on a later viewDidAppear
+        // self-heals once the pivot bar data arrives.
+        BOOL pivotPresent = [[self pivotIdentifiers] containsObject:targetPivot];
+        if (pivotPresent) {
+            [self selectItemWithPivotIdentifier:targetPivot];
+            isTabSelected = YES;
+        }
     }
 }
 // Translucent tab bar
