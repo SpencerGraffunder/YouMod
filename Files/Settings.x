@@ -341,6 +341,7 @@ static NSString *GetCacheSize() { // YTLite - @dayanch96
             YMToggle(YMLOC(@"STOP_AUTOPLAY_VIDEO"), YMLOC(@"STOP_AUTOPLAY_VIDEO_DESC"), StopAutoplayVideo),
             YMToggle(YMLOC(@"AUTO_FULLSCREEN"), YMLOC(@"AUTO_FULLSCREEN_DESC"), AutoFullScreen),
             YMToggle(YMLOC(@"AUTO_EXIT_FULLSCREEN"), YMLOC(@"AUTO_EXIT_FULLSCREEN_DESC"), AutoExitFullScreen),
+            YMToggle(YMLOC(@"INSTANT_SWIPE_AFTER_ROTATION"), YMLOC(@"INSTANT_SWIPE_AFTER_ROTATION_DESC"), InstantSwipeAfterRotation),
             YMToggle(YMLOC(@"AUTO_FEED_MUTE"), YMLOC(@"AUTO_FEED_MUTE_DESC"), AutoFeedMute),
             YMHeader(YMLOC(@"GESTURE_HEADER")),
             YMToggle(YMLOC(@"GESTURES"), YMLOC(@"GESTURES_DESC"), GestureControls),

@@ -286,6 +286,8 @@
 "DISABLES_LONG_HOLD_DESC" = "Disables long hold to speed up the video in the video overlay.";
 "AUTO_EXIT_FULLSCREEN" = "Auto exit fullscreen";
 "AUTO_EXIT_FULLSCREEN_DESC" = "Automatically exit fullscreen after the video ends.";
+"INSTANT_SWIPE_AFTER_ROTATION" = "Instant swipe after rotation";
+"INSTANT_SWIPE_AFTER_ROTATION_DESC" = "Removes the ~3 second delay before you can swipe down on the video to minimize it after rotating from landscape to portrait. Turn off to restore the stock delay.";
 "AUTO_FEED_MUTE" = "Auto mute feed videos";
 "AUTO_FEED_MUTE_DESC" = "Automatically mute videos playing in feeds.";
 "DISABLES_SHOW_REMAINING" = "Disable remaining time";

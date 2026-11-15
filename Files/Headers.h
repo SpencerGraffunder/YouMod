@@ -176,6 +176,7 @@
 #define DisablesDoubleTap @"YouModDisablesDoubleTap"
 #define DisablesLongHold @"YouModDisablesLongHold"
 #define AutoExitFullScreen @"YouModAutoExitFullScreen"
+#define InstantSwipeAfterRotation @"YouModInstantSwipeAfterRotation"
 #define DisablesShowRemaining @"YouModDisablesShowRemainingTime"
 #define AlwaysShowRemaining @"YouModAlwaysShowRemainingTime"
 #define ShowExtraTimeRemaining @"YouModShowExtraTimeRemaining"
@@ -402,6 +403,13 @@ typedef NS_ENUM(NSUInteger, GestureSection) {
 @interface YTPivotBarViewController : UIViewController
 - (void)selectItemWithPivotIdentifier:(id)pivotIndentifier;
 - (void)YouModReloadTabBar:(id)arg;
+- (NSArray *)pivotIdentifiers;
+@end
+
+// Watch fullscreen container VC; isRotating gates the swipe-down dismiss
+// gesture for a few seconds after an orientation change (RotationCooldown.x).
+@interface YTWatchFullscreenViewController : UIViewController
+- (BOOL)isRotating;
 @end
 
 @interface YTReelWatchPlaybackOverlayView : UIView <UIGestureRecognizerDelegate>
