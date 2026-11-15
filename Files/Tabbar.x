@@ -98,13 +98,35 @@ static NSString *ymTitleForTabID(NSString *tabID) {
     return nil;
 }
 
-%hook YTPivotBarView
-- (void)setRenderer:(YTIPivotBarRenderer *)renderer {
+// November server-side bar rebuild (upstream #216): the pivot bar can arrive as the
+// new floating layout (backgroundStyle == 2) hosted by YTFloatingPivotBarView, whose
+// items use pivotBarIconOnlyItemRenderer. Ported from upstream pre-release branch.
+static BOOL isNewYTTabbarLayout = NO;
+
+static int ymRendererBackgroundStyle(YTIPivotBarRenderer *renderer) {
+    if (![renderer respondsToSelector:@selector(backgroundStyle)]) return 0;
+    id value = [renderer valueForKey:@"backgroundStyle"];
+    return [value respondsToSelector:@selector(integerValue)] ? (int)[value integerValue] : 0;
+}
+
+static YTIPivotBarSupportedRenderers *ymNewTabRenderer(NSString *pivotID, NSString *title, NSInteger iconType) {
+    if (isNewYTTabbarLayout && [[%c(YTIPivotBarSupportedRenderers) new].pivotBarIconOnlyItemRenderer respondsToSelector:@selector(setBackgroundStyle:)]) {
+        YTIPivotBarSupportedRenderers *tab = [%c(YTIPivotBarSupportedRenderers) new];
+        tab.pivotBarIconOnlyItemRenderer.pivotIdentifier = pivotID;
+        tab.pivotBarIconOnlyItemRenderer.navigationEndpoint.browseEndpoint.browseId = pivotID;
+        tab.pivotBarIconOnlyItemRenderer.icon.iconType = (int)iconType;
+        tab.pivotBarIconOnlyItemRenderer.backgroundStyle = 1;
+        return tab;
+    }
+    return [%c(YTIPivotBarRenderer) pivotSupportedRenderersWithBrowseId:pivotID title:title iconType:iconType];
+}
+
+static void ymApplySavedTabOrder(YTIPivotBarRenderer *renderer) {
     NSArray *savedOrder = [[NSUserDefaults standardUserDefaults] arrayForKey:TabOrder];
     if (savedOrder.count > 0) {
         NSMutableArray <YTIPivotBarSupportedRenderers *> *items = [renderer itemsArray];
 
-        // Build lookup: pivotIdentifier -> renderer item
+        // Build lookup: pivotIdentifier -> renderer item (both bar layouts)
         NSMutableDictionary<NSString *, YTIPivotBarSupportedRenderers *> *lookup = [NSMutableDictionary dictionary];
         for (YTIPivotBarSupportedRenderers *item in items) {
             NSString *pID = [[item pivotBarItemRenderer] pivotIdentifier];
@@ -131,7 +153,7 @@ static NSString *ymTitleForTabID(NSString *tabID) {
                 NSInteger iconType = ymIconTypeForTabID(tabID);
                 NSString *title = ymTitleForTabID(tabID);
                 if (iconType > 0 && title) {
-                    YTIPivotBarSupportedRenderers *newTab = [%c(YTIPivotBarRenderer) pivotSupportedRenderersWithBrowseId:pivotID title:title iconType:iconType];
+                    YTIPivotBarSupportedRenderers *newTab = ymNewTabRenderer(pivotID, title, iconType);
                     if (newTab) [ordered addObject:newTab];
                 }
             }
@@ -140,6 +162,20 @@ static NSString *ymTitleForTabID(NSString *tabID) {
         [items removeAllObjects];
         [items addObjectsFromArray:ordered];
     }
+}
+
+%hook YTPivotBarView
+- (void)setRenderer:(YTIPivotBarRenderer *)renderer {
+    isNewYTTabbarLayout = ymRendererBackgroundStyle(renderer) == 2;
+    ymApplySavedTabOrder(renderer);
+    %orig(renderer);
+}
+%end
+
+%hook YTFloatingPivotBarView
+- (void)setRenderer:(YTIPivotBarRenderer *)renderer {
+    isNewYTTabbarLayout = ymRendererBackgroundStyle(renderer) == 2;
+    ymApplySavedTabOrder(renderer);
     %orig(renderer);
 }
 %end

@@ -340,6 +340,11 @@ typedef NS_ENUM(NSUInteger, GestureSection) {
 @interface YTPivotBarView : UIView
 @end
 
+// YouTube's November server-side rebuild hosts the pivot bar in a new view class
+// (fixes upstream YouMod #216); logic is ported from the upstream pre-release branch.
+@interface YTFloatingPivotBarView : UIView
+@end
+
 @interface YTPivotBarItemView (YouMod) <UIContextMenuInteractionDelegate>
 @end
 
