@@ -109,14 +109,34 @@ static int ymRendererBackgroundStyle(YTIPivotBarRenderer *renderer) {
     return [value respondsToSelector:@selector(integerValue)] ? (int)[value integerValue] : 0;
 }
 
+static id ymNewGPB(NSString *className) {
+    Class cls = NSClassFromString(className);
+    return cls ? [cls new] : nil;
+}
+
+// Builds a custom tab item for whichever bar layout is live. Pure runtime construction
+// (NSClassFromString + KVC): the YouTubeHeader package headers lag the binary's actual
+// GPB classes, so typed dot-syntax on these proto fields does not compile.
 static YTIPivotBarSupportedRenderers *ymNewTabRenderer(NSString *pivotID, NSString *title, NSInteger iconType) {
-    if (isNewYTTabbarLayout && [[%c(YTIPivotBarSupportedRenderers) new].pivotBarIconOnlyItemRenderer respondsToSelector:@selector(setBackgroundStyle:)]) {
-        YTIPivotBarSupportedRenderers *tab = [%c(YTIPivotBarSupportedRenderers) new];
-        tab.pivotBarIconOnlyItemRenderer.pivotIdentifier = pivotID;
-        tab.pivotBarIconOnlyItemRenderer.navigationEndpoint.browseEndpoint.browseId = pivotID;
-        tab.pivotBarIconOnlyItemRenderer.icon.iconType = (int)iconType;
-        tab.pivotBarIconOnlyItemRenderer.backgroundStyle = 1;
-        return tab;
+    if (isNewYTTabbarLayout) {
+        @try {
+            id iconOnly = ymNewGPB(@"YTIPivotBarIconOnlyItemRenderer");
+            if (iconOnly && [iconOnly respondsToSelector:@selector(setBackgroundStyle:)]) {
+                id endpoint = ymNewGPB(@"YTIBrowseEndpoint");
+                if (endpoint) [endpoint setValue:pivotID forKey:@"browseId"];
+                id command = ymNewGPB(@"YTICommand");
+                if (command && endpoint) [command setValue:endpoint forKey:@"browseEndpoint"];
+                id icon = ymNewGPB(@"YTIIcon");
+                if (icon) [icon setValue:@(iconType) forKey:@"iconType"];
+                [iconOnly setValue:pivotID forKey:@"pivotIdentifier"];
+                [iconOnly setValue:@(1) forKey:@"backgroundStyle"];
+                if (icon) [iconOnly setValue:icon forKey:@"icon"];
+                if (command) [iconOnly setValue:command forKey:@"navigationEndpoint"];
+                YTIPivotBarSupportedRenderers *tab = [%c(YTIPivotBarSupportedRenderers) new];
+                [tab setValue:iconOnly forKey:@"pivotBarIconOnlyItemRenderer"];
+                return tab;
+            }
+        } @catch (NSException *e) {}
     }
     return [%c(YTIPivotBarRenderer) pivotSupportedRenderersWithBrowseId:pivotID title:title iconType:iconType];
 }
